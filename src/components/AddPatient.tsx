@@ -261,7 +261,7 @@ const AddPatient = () => {
           </div>
           <div className="w-full flex justify-center">
             <Button type="submit" variant="outlined">
-              Click me
+              Add Patient
             </Button>
           </div>
         </form>

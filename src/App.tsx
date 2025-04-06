@@ -79,7 +79,7 @@ function App() {
         <TabPanel value={value} index={2}>
           <SearchPatient />
         </TabPanel>
-        <TabPanel value={value} index={2}>
+        <TabPanel value={value} index={3}>
           <SelectFile />
         </TabPanel>
       </Box>
