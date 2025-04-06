@@ -5,6 +5,8 @@ interface GoogleAuthContextType {
   signIn: () => void;
   signOut: () => void;
   accessToken: string | null;
+  document: string | null;
+  setDocument: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export const GoogleAuthContext = createContext<GoogleAuthContextType>({
@@ -12,4 +14,6 @@ export const GoogleAuthContext = createContext<GoogleAuthContextType>({
   signIn: () => {},
   signOut: () => {},
   accessToken: null,
+  document: null,
+  setDocument: () => {},
 });

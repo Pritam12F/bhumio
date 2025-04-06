@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   TextField,
   Paper,
@@ -11,8 +11,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { ChevronDown } from "lucide-react";
+import { GoogleAuthContext } from "../context/auth/context";
 
-interface PatientFormData {
+export interface PatientFormData {
   patientId: string;
   patientName: string;
   age: string;
@@ -46,6 +47,7 @@ const AddPatient = () => {
     physicianPhone: "",
     bill: "",
   });
+  const { document } = useContext(GoogleAuthContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,15 +57,14 @@ const AddPatient = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
-    // Handle form submission here
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Paper className="p-6 min-w-fit min-h-fit mx-auto" elevation={0}>
+        {document}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
             <div>

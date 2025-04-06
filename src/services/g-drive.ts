@@ -9,48 +9,35 @@ export const DISCOVERY_DOCS = [
 
 export const SCOPES = "https://www.googleapis.com/auth/drive";
 
-export const createFile = async (name: string, content: string) => {
-  try {
-    const boundary = "-------314159265358979323846";
-    const delimiter = `\r\n--${boundary}\r\n`;
-    const closeDelimiter = `\r\n--${boundary}--`;
-
-    const metadata = {
-      name,
-      mimeType: "text/plain",
-    };
-
-    const multipartRequestBody =
-      delimiter +
-      "Content-Type: application/json\r\n\r\n" +
-      JSON.stringify(metadata) +
-      delimiter +
-      "Content-Type: text/plain\r\n\r\n" +
-      content +
-      closeDelimiter;
-
-    const response = await gapi.client.request({
-      path: "/upload/drive/v3/files",
-      method: "POST",
-      params: {
-        uploadType: "multipart",
+export const initClient = () => {
+  return gapi.client
+    .init({
+      apiKey: API_KEY,
+      clientId: CLIENT_ID,
+      discoveryDocs: DISCOVERY_DOCS,
+      scope: SCOPES,
+    })
+    .then(
+      () => {
+        console.log("GAPI client initialized.");
       },
-      headers: {
-        "Content-Type": `multipart/related; boundary="${boundary}"`,
-      },
-      body: multipartRequestBody,
-    });
+      (error) => {
+        console.error("Error initializing GAPI client:", error);
+      }
+    );
+};
 
-    return response;
-  } catch (error) {
-    console.error("Error creating file:", error);
-    throw error;
-  }
+export const signIn = () => {
+  return gapi.auth2.getAuthInstance().signIn();
+};
+
+export const signOut = () => {
+  return gapi.auth2.getAuthInstance().signOut();
 };
 
 // Additional API methods (e.g., readFile, updateFile, deleteFile)
 
-export const listFiles = async (): Promise<
+export const listSpreadsheetFiles = async (): Promise<
   (typeof gapi.client.drive.File)[]
 > => {
   try {
@@ -60,7 +47,11 @@ export const listFiles = async (): Promise<
     });
 
     const files = response.result.files;
-    return files || [];
+    return (
+      files.filter(
+        (x: any) => x.mimeType === "application/vnd.google-apps.spreadsheet"
+      ) || []
+    );
   } catch (error) {
     console.error("Error fetching files:", error);
     throw error;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { gapi } from "gapi-script";
 import { GoogleAuthContext } from "./context";
 import {
@@ -15,6 +15,7 @@ interface AuthProviderProps {
 export const GoogleAuthProvider = ({ children }: AuthProviderProps) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [document, setDocument] = useState<string | null>(null);
 
   useEffect(() => {
     const initClient = () => {
@@ -67,7 +68,14 @@ export const GoogleAuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <GoogleAuthContext.Provider
-      value={{ isSignedIn, signIn, signOut, accessToken }}
+      value={{
+        isSignedIn,
+        signIn,
+        signOut,
+        accessToken,
+        document,
+        setDocument,
+      }}
     >
       {children}
     </GoogleAuthContext.Provider>
