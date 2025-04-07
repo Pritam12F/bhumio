@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Tabs, Tab, Box } from "@mui/material";
 import AddPatient from "./components/AddPatient";
 import EditPatient from "./components/EditPatient";
 import SearchPatient from "./components/SearchPatient";
 import { SelectFile } from "./components/SelectFile";
-import { gapi } from "gapi-script";
-import { API_KEY, CLIENT_ID, SCOPES } from "./services/g-drive";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -43,25 +41,6 @@ function App() {
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
-
-  useEffect(() => {
-    function initGoogleAPI() {
-      gapi.client
-        .init({
-          apiKey: API_KEY,
-          clientId: CLIENT_ID,
-          scope: SCOPES,
-        })
-        .then(() => {
-          console.log("Google API initialized");
-        })
-        .catch((err: any) => {
-          console.log(err);
-        });
-    }
-
-    gapi.load("client:auth2", initGoogleAPI);
-  }, []);
 
   return (
     <Box
