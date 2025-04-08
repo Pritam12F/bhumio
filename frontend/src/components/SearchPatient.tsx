@@ -1,6 +1,5 @@
 import React, { useContext, useState } from "react";
 import { TextField, Paper, Typography, Input } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { GoogleAuthContext } from "../context/auth/context";

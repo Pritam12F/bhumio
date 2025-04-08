@@ -13,7 +13,7 @@ export interface PatientFormData {
   physicianPhone: string;
   description: string;
   dose: string;
-  appointmenId: string;
+  appointmentId: string;
   visitDate: string;
   nextVisitDate: string;
 }

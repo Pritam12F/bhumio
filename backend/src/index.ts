@@ -168,6 +168,172 @@ app.post("/search", async (req, res) => {
   res.json({ results });
 });
 
+app.post("/edit", async (req, res) => {
+  const refresh_token = req.headers["refreshtoken"]?.toString();
+  const access_token = req.headers["accesstoken"]?.toString();
+
+  if (!refresh_token || !access_token) {
+    res.json({
+      message: "Token not provided",
+    });
+
+    return;
+  }
+
+  const { patientId, spreadsheetId } = req.query;
+
+  if (!patientId || !spreadsheetId) {
+    res.json({
+      message: "No patientId or spreadsheetId provided",
+    });
+
+    return;
+  }
+
+  const sheets = await initSheetsClient(refresh_token!, access_token!);
+
+  const readResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "patient",
+  });
+
+  const rows = readResponse.data.values || [];
+
+  const headerRow = rows[0];
+  const patientIdIndex = headerRow.indexOf("ssn");
+
+  if (patientIdIndex === -1) {
+    res.status(400).json({ message: "No 'patientId' column found." });
+
+    return;
+  }
+
+  const matchingRowIndex = rows.findIndex(
+    (row, index) => index !== 0 && row[patientIdIndex] === patientId
+  );
+
+  if (matchingRowIndex === -1) {
+    res.status(404).json({ message: "Patient not found." });
+
+    return;
+  }
+
+  const {
+    patientName,
+    address,
+    location,
+    email,
+    phone,
+    physicianId,
+    physicianPhone,
+    description,
+    dose,
+    appointmentId,
+    visitDate,
+    nextVisitDate,
+  } = req.body;
+
+  const range = `patient!A${matchingRowIndex + 1}:G${matchingRowIndex + 1}`;
+
+  const updateResponse = await sheets.spreadsheets.values.update({
+    spreadsheetId: spreadsheetId.toString(),
+    range,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [
+        patientId,
+        patientName.split(" ")[0],
+        patientName.split(" ")[1],
+        address,
+        location,
+        email,
+        phone,
+      ],
+    },
+  });
+
+  const prescriptionResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "prescribes",
+  });
+
+  const prescriptionRows = prescriptionResponse.data.values || [];
+  const prescriptionHeader = prescriptionRows[0];
+  const prescriptionPatientIdIndex = prescriptionHeader.indexOf("PatientId");
+
+  if (prescriptionPatientIdIndex === -1) {
+    res
+      .status(400)
+      .json({ message: "No 'PatientId' column in prescribes sheet." });
+    return;
+  }
+
+  const matchingPrescriptionIndex = prescriptionRows.findIndex(
+    (row, index) => index !== 0 && row[prescriptionPatientIdIndex] === patientId
+  );
+
+  if (matchingPrescriptionIndex === -1) {
+    res.status(404).json({ message: "No matching prescription found." });
+    return;
+  }
+
+  const prescriptionRange = `prescribes!A${matchingPrescriptionIndex + 1}:D${
+    matchingPrescriptionIndex + 1
+  }`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: spreadsheetId.toString(),
+    range: prescriptionRange,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [physicianId, patientId, description, dose],
+    },
+  });
+
+  const appointmentsResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "appointment",
+  });
+
+  const appointmentRows = appointmentsResponse.data.values || [];
+  const appointmentHeader = appointmentRows[0];
+  const appointmentPatientIdIndex = appointmentHeader.indexOf("patientID");
+
+  if (appointmentPatientIdIndex === -1) {
+    res
+      .status(400)
+      .json({ message: "No 'patientID' column in appointments sheet." });
+    return;
+  }
+
+  const matchingAppointmentIndex = appointmentRows.findIndex(
+    (row, index) => index !== 0 && row[appointmentPatientIdIndex] === patientId
+  );
+
+  if (matchingAppointmentIndex === -1) {
+    res.status(404).json({ message: "No matching appointment found." });
+    return;
+  }
+
+  const appointmentRange = `appointments!A${matchingAppointmentIndex + 1}:E${
+    matchingAppointmentIndex + 1
+  }`;
+
+  const appointmentUpdateResponse = await sheets.spreadsheets.values.update({
+    spreadsheetId: spreadsheetId.toString(),
+    range: appointmentRange,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [appointmentId, patientId, physicianId, visitDate, nextVisitDate],
+    },
+  });
+
+  res.json({
+    message: "Patient details update",
+    updateResponse,
+  });
+});
+
 app.listen(3000, () => {
   console.log("Listening");
 });
