@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { TextField, Paper, Typography } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import { GoogleAuthContext } from "../context/auth/context";
 
 interface PatientFormData {
   searchTerm: "";
@@ -41,6 +42,8 @@ const SearchPatient = () => {
     physicianPhone: "",
     bill: "",
   });
+
+  const { document } = useContext(GoogleAuthContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

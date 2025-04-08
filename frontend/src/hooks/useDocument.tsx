@@ -1,13 +1,28 @@
-import { gapi } from "gapi-script";
+import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 
-export const useDocument = (documentId: string) => {
-  const [document, setDocument] = useState();
+export const useDocument = () => {
+  const [documents, setDocuments] = useState<
+    { id: string; name: string; mimeType: string }[]
+  >([]);
 
-  const fetchDocument = useCallback(async () => {
-    return gapi;
-  }, [documentId]);
-  useEffect(() => {}, []);
+  const fetchDocuments = useCallback(async () => {
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/getdocuments`,
+      {},
+      {
+        headers: {
+          Authorization: localStorage.getItem("bhumio-oauth.google.authcode"),
+        },
+      }
+    );
 
-  return { document, setDocument };
+    setDocuments([...res.data.files]);
+  }, []);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  return { documents };
 };

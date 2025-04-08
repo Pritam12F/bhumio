@@ -1,27 +1,38 @@
 import express from "express";
 import cors from "cors";
-import { url } from "./client/google";
-import { verifyGoogleToken } from "./decode";
+import { initClient } from "./client/google";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use(async (req, res, next) => {
-  const token = req.body.token;
-  const payload = await verifyGoogleToken(token);
-  if (payload?.email) {
-    next();
+app.post("/getdocuments", async (req, res) => {
+  const authCode = req.headers["authorization"];
+
+  if (!authCode) {
+    res.json({
+      message: "No auth code provided",
+    });
+
     return;
   }
 
-  res.send("Invalid user");
+  const drive = await initClient(authCode);
+
+  const response = await drive.files.list({
+    pageSize: 300,
+    fields: "files(id, name, mimeType)",
+  });
+
+  const files = response.data.files?.filter(
+    (el) => el.mimeType === "application/vnd.google-apps.spreadsheet"
+  );
+
+  res.json({ files });
 });
 
-app.post("/", (req, res) => {
-  res.json({ url });
-});
+app.post("/addpatients", async (req, res) => {});
 
 app.listen(3000, () => {
   console.log("Listening");

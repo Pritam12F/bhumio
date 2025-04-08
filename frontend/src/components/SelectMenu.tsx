@@ -2,25 +2,16 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { GoogleAuthContext } from "../context/auth/context";
 
-type SelectProps = {
-  name: string;
-  url: string;
-}[];
-
-export function SelectMenu({
-  sheetList,
-  setDocument,
-}: {
-  sheetList: SelectProps;
-  setDocument: React.Dispatch<React.SetStateAction<string | null>>;
-}) {
+export function SelectMenu() {
   const [sheet, setSheet] = useState("");
+  const { documents, setDocument } = useContext(GoogleAuthContext);
 
   const handleChange = (event: SelectChangeEvent) => {
     setSheet(event.target.value);
-    setDocument(event.target.value);
+    setDocument?.(event.target.value);
   };
 
   return (
@@ -36,8 +27,8 @@ export function SelectMenu({
         <MenuItem value="">
           <em>None</em>
         </MenuItem>
-        {sheetList.map(({ name, url }) => (
-          <MenuItem value={url}>{name}</MenuItem>
+        {documents.map(({ name, id }) => (
+          <MenuItem value={id}>{name}</MenuItem>
         ))}
       </Select>
     </FormControl>
