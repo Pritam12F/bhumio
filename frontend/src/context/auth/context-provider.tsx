@@ -26,8 +26,8 @@ export const GoogleAuthContextProvider = ({
         {},
         {
           headers: {
-            Authorization:
-              localStorage.getItem("bhumio-oauth.google.authcode") || "",
+            Refreshtoken: localStorage.getItem("google-refresh-token"),
+            Accesstoken: localStorage.getItem("google-access-token"),
           },
         }
       );

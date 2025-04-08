@@ -1,68 +1,24 @@
 import React, { useContext, useState } from "react";
-import { TextField, Paper, Typography } from "@mui/material";
+import { TextField, Paper, Typography, Input } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
 import { GoogleAuthContext } from "../context/auth/context";
-
-interface PatientFormData {
-  searchTerm: "";
-  patientId: string;
-  patientName: string;
-  age: string;
-  phone: string;
-  address: string;
-  location: string;
-  prescription: string;
-  dose: string;
-  visitDate: dayjs.Dayjs | null;
-  nextVisit: dayjs.Dayjs | null;
-  physicianId: string;
-  physicianName: string;
-  physicianPhone: string;
-  bill: string;
-}
+import { useSearch } from "../hooks/useSearch";
 
 const SearchPatient = () => {
-  const [formData, setFormData] = useState<PatientFormData>({
-    searchTerm: "",
-    patientId: "",
-    patientName: "",
-    age: "",
-    phone: "",
-    address: "",
-    location: "",
-    prescription: "",
-    dose: "",
-    visitDate: dayjs(),
-    nextVisit: dayjs(),
-    physicianId: "",
-    physicianName: "",
-    physicianPhone: "",
-    bill: "",
-  });
-
+  const [searchTerm, setSearchTerm] = useState("");
   const { document } = useContext(GoogleAuthContext);
+  const { result } = useSearch(searchTerm, document ?? "");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log(formData);
-    // Handle form submission here
+    setSearchTerm(e.target.value);
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Paper className="min-w-fit min-h-fit mx-auto" elevation={0}>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6">
           <div>
             <Typography variant="subtitle2" className="mb-1">
               Search
@@ -71,7 +27,7 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="searchTerm"
-                value={formData.searchTerm}
+                value={searchTerm}
                 onChange={handleChange}
                 fullWidth
               />
@@ -82,16 +38,14 @@ const SearchPatient = () => {
               <Typography variant="subtitle2" className="mb-1">
                 Patient ID
               </Typography>
-              <div className="flex gap-2">
-                <TextField
-                  size="small"
-                  name="patientId"
-                  value={formData.patientId}
-                  onChange={handleChange}
-                  fullWidth
-                  disabled
-                />
-              </div>
+              <TextField
+                size="small"
+                name="patientId"
+                value={result?.patientId}
+                onChange={handleChange}
+                fullWidth
+                disabled
+              />
             </div>
             <div>
               <Typography variant="subtitle2" className="mb-1">
@@ -100,9 +54,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="patientName"
-                value={formData.patientName}
+                value={result?.patientName}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
             <div>
@@ -112,9 +67,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="location"
-                value={formData.location}
+                value={result?.location}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
           </div>
@@ -128,9 +84,10 @@ const SearchPatient = () => {
                 size="small"
                 name="age"
                 type="number"
-                value={formData.age}
+                value={result}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
             <div>
@@ -140,9 +97,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="phone"
-                value={formData.phone}
+                value={result?.phone}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
             <div className="col-span-2">
@@ -152,9 +110,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="address"
-                value={formData.address}
+                value={result?.address}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
           </div>
@@ -167,11 +126,12 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="prescription"
-                value={formData.prescription}
+                value={result?.description}
                 onChange={handleChange}
                 fullWidth
                 multiline
                 rows={2}
+                disabled
               />
             </div>
             <div>
@@ -181,9 +141,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="dose"
-                value={formData.dose}
+                value={result?.dose}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
           </div>
@@ -193,35 +154,13 @@ const SearchPatient = () => {
               <Typography variant="subtitle2" className="mb-1">
                 Visit Date
               </Typography>
-              <DatePicker
-                value={formData.visitDate}
-                onChange={(newValue) =>
-                  setFormData((prev) => ({ ...prev, visitDate: newValue }))
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                  },
-                }}
-              />
+              <Input disabled value={result?.visitDate} />
             </div>
             <div>
               <Typography variant="subtitle2" className="mb-1">
                 Next Visit
               </Typography>
-              <DatePicker
-                value={formData.nextVisit}
-                onChange={(newValue) =>
-                  setFormData((prev) => ({ ...prev, nextVisit: newValue }))
-                }
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                  },
-                }}
-              />
+              <Input disabled value={result?.nextVisitDate} />
             </div>
           </div>
           <hr></hr>
@@ -233,9 +172,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="physicianId"
-                value={formData.physicianId}
+                value={result?.physicianId}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
             <div>
@@ -245,9 +185,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="physicianName"
-                value={formData.physicianName}
+                value={result?.physicianName}
                 onChange={handleChange}
                 fullWidth
+                disabled
               />
             </div>
           </div>
@@ -260,22 +201,10 @@ const SearchPatient = () => {
               <TextField
                 size="small"
                 name="physicianPhone"
-                value={formData.physicianPhone}
+                value={result?.physicianPhone}
                 onChange={handleChange}
                 fullWidth
-              />
-            </div>
-            <div>
-              <Typography variant="subtitle2" className="mb-1">
-                Bill
-              </Typography>
-              <TextField
-                size="small"
-                name="bill"
-                type="number"
-                value={formData.bill}
-                onChange={handleChange}
-                fullWidth
+                disabled
               />
             </div>
           </div>

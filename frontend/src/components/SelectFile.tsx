@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { GoogleAuthContext } from "../context/auth/context";
 import { useGoogleLogin } from "@react-oauth/google";
 import { SelectMenu } from "./SelectMenu";
+import axios from "axios";
 
 export const SelectFile = () => {
   const { isSignedIn, signIn, signOut } = useContext(GoogleAuthContext);
@@ -10,13 +11,29 @@ export const SelectFile = () => {
   const login = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
-      localStorage.setItem("bhumio-oauth.google.authcode", codeResponse.code);
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/signin`,
+        {},
+        {
+          headers: {
+            Authorization: codeResponse.code,
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        localStorage.setItem("google-refresh-token", res.data.refreshToken);
+        localStorage.setItem("google-access-token", res.data.accesToken);
+      }
       signIn();
     },
     onError: () => {
       console.log("Login Failed");
     },
-    scope: "https://www.googleapis.com/auth/drive",
+    scope: [
+      "https://www.googleapis.com/auth/drive",
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ].join(" "),
   });
 
   return (
