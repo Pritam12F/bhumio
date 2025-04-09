@@ -1,46 +1,49 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { TextField, Paper, Typography, Button } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import { useSearch } from "../hooks/useSearch";
+import { GoogleAuthContext } from "../context/auth/context";
+import axios from "axios";
 
 interface PatientFormData {
-  searchTerm: "";
-  patientId: string;
   patientName: string;
-  age: string;
-  phone: string;
   address: string;
   location: string;
-  prescription: string;
-  dose: string;
-  visitDate: dayjs.Dayjs | null;
-  nextVisit: dayjs.Dayjs | null;
+  email: string;
+  phone: string;
   physicianId: string;
   physicianName: string;
   physicianPhone: string;
-  bill: string;
+  description: string; // assuming this is the prescription/notes
+  dose: string;
+  appointmentId: string;
+  visitDate: dayjs.Dayjs;
+  nextVisitDate: dayjs.Dayjs;
 }
 
 const EditPatient = () => {
   const [formData, setFormData] = useState<PatientFormData>({
-    searchTerm: "",
-    patientId: "",
     patientName: "",
-    age: "",
-    phone: "",
     address: "",
     location: "",
-    prescription: "",
-    dose: "",
-    visitDate: dayjs(),
-    nextVisit: dayjs(),
+    email: "",
+    phone: "",
     physicianId: "",
     physicianName: "",
     physicianPhone: "",
-    bill: "",
+    description: "",
+    dose: "",
+    appointmentId: "",
+    visitDate: dayjs(),
+    nextVisitDate: dayjs(),
   });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const { document } = useContext(GoogleAuthContext);
+  const { name, patientId } = useSearch(searchTerm, document ?? "");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,10 +53,28 @@ const EditPatient = () => {
     }));
   };
 
+  const handleSearchTermChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setSearchTerm(e.target.value);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log(formData);
-    // Handle form submission here
+
+    const res = axios.post(
+      `${
+        import.meta.env.VITE_BACKEND_URL
+      }/edit?patientId=${patientId}&spreadsheetId=${document}`,
+      { ...formData },
+      {
+        headers: {
+          Refreshtoken: localStorage.getItem("google-refresh-token"),
+          Accesstoken: localStorage.getItem("google-access-token"),
+        },
+      }
+    );
   };
 
   return (
@@ -68,11 +89,12 @@ const EditPatient = () => {
               <TextField
                 size="small"
                 name="searchTerm"
-                value={formData.searchTerm}
-                onChange={handleChange}
+                value={searchTerm}
+                onChange={handleSearchTermChange}
                 fullWidth
               />
             </div>
+            Searched patient: {name}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -83,7 +105,6 @@ const EditPatient = () => {
                 <TextField
                   size="small"
                   name="patientId"
-                  value={formData.patientId}
                   onChange={handleChange}
                   fullWidth
                   disabled
@@ -125,7 +146,6 @@ const EditPatient = () => {
                 size="small"
                 name="age"
                 type="number"
-                value={formData.age}
                 onChange={handleChange}
                 fullWidth
               />
@@ -164,7 +184,7 @@ const EditPatient = () => {
               <TextField
                 size="small"
                 name="prescription"
-                value={formData.prescription}
+                value={formData.description}
                 onChange={handleChange}
                 fullWidth
                 multiline
@@ -193,7 +213,7 @@ const EditPatient = () => {
               <DatePicker
                 value={formData.visitDate}
                 onChange={(newValue) =>
-                  setFormData((prev) => ({ ...prev, visitDate: newValue }))
+                  setFormData((prev) => ({ ...prev, visitDate: newValue! }))
                 }
                 slotProps={{
                   textField: {
@@ -208,7 +228,7 @@ const EditPatient = () => {
                 Next Visit
               </Typography>
               <DatePicker
-                value={formData.nextVisit}
+                value={formData.nextVisitDate}
                 onChange={(newValue) =>
                   setFormData((prev) => ({ ...prev, nextVisit: newValue }))
                 }
@@ -270,7 +290,6 @@ const EditPatient = () => {
                 size="small"
                 name="bill"
                 type="number"
-                value={formData.bill}
                 onChange={handleChange}
                 fullWidth
               />

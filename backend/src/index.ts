@@ -150,7 +150,7 @@ app.post("/search", async (req, res) => {
 
   const results = {
     patientId: matchingPatient[0],
-    patientName: matchingPatient[1] + matchingPatient[2] || "",
+    patientName: matchingPatient[1] + " " + matchingPatient[2] || "",
     address: matchingPatient[3] ?? "",
     location: matchingPatient[4] ?? "",
     email: matchingPatient[5] ?? "",
@@ -173,38 +173,29 @@ app.post("/edit", async (req, res) => {
   const access_token = req.headers["accesstoken"]?.toString();
 
   if (!refresh_token || !access_token) {
-    res.json({
-      message: "Token not provided",
-    });
-
+    res.json({ message: "Token not provided" });
     return;
   }
 
   const { patientId, spreadsheetId } = req.query;
 
   if (!patientId || !spreadsheetId) {
-    res.json({
-      message: "No patientId or spreadsheetId provided",
-    });
-
+    res.json({ message: "No patientId or spreadsheetId provided" });
     return;
   }
 
-  const sheets = await initSheetsClient(refresh_token!, access_token!);
-
+  const sheets = await initSheetsClient(refresh_token, access_token);
   const readResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId.toString(),
     range: "patient",
   });
 
   const rows = readResponse.data.values || [];
-
   const headerRow = rows[0];
   const patientIdIndex = headerRow.indexOf("ssn");
 
   if (patientIdIndex === -1) {
-    res.status(400).json({ message: "No 'patientId' column found." });
-
+    res.json({ message: "No 'patientId' column found." });
     return;
   }
 
@@ -213,8 +204,7 @@ app.post("/edit", async (req, res) => {
   );
 
   if (matchingRowIndex === -1) {
-    res.status(404).json({ message: "Patient not found." });
-
+    res.json({ message: "Patient not found." });
     return;
   }
 
@@ -225,6 +215,7 @@ app.post("/edit", async (req, res) => {
     email,
     phone,
     physicianId,
+    physicianName,
     physicianPhone,
     description,
     dose,
@@ -233,25 +224,32 @@ app.post("/edit", async (req, res) => {
     nextVisitDate,
   } = req.body;
 
-  const range = `patient!A${matchingRowIndex + 1}:G${matchingRowIndex + 1}`;
+  const visitDateString = new Date(visitDate).toLocaleDateString("en-IN");
+  const nextVisitDateString = new Date(nextVisitDate).toLocaleDateString(
+    "en-IN"
+  );
 
-  const updateResponse = await sheets.spreadsheets.values.update({
+  // Update patient sheet
+  await sheets.spreadsheets.values.update({
     spreadsheetId: spreadsheetId.toString(),
-    range,
+    range: `patient!A${matchingRowIndex + 1}:G${matchingRowIndex + 1}`,
     valueInputOption: "RAW",
     requestBody: {
       values: [
-        patientId,
-        patientName.split(" ")[0],
-        patientName.split(" ")[1],
-        address,
-        location,
-        email,
-        phone,
+        [
+          patientId,
+          patientName.split(" ")[0],
+          patientName.split(" ")[1] || "",
+          address,
+          location,
+          email,
+          phone,
+        ],
       ],
     },
   });
 
+  // Update prescription sheet
   const prescriptionResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId.toString(),
     range: "prescribes",
@@ -259,37 +257,33 @@ app.post("/edit", async (req, res) => {
 
   const prescriptionRows = prescriptionResponse.data.values || [];
   const prescriptionHeader = prescriptionRows[0];
-  const prescriptionPatientIdIndex = prescriptionHeader.indexOf("PatientId");
+  const prescriptionPatientIdIndex = prescriptionHeader.indexOf("PatientID");
 
-  if (prescriptionPatientIdIndex === -1) {
-    res
-      .status(400)
-      .json({ message: "No 'PatientId' column in prescribes sheet." });
-    return;
+  if (prescriptionPatientIdIndex !== -1) {
+    const matchingPrescriptionIndex = prescriptionRows.findIndex(
+      (row, index) =>
+        index !== 0 && row[prescriptionPatientIdIndex] === patientId
+    );
+
+    if (matchingPrescriptionIndex !== -1) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: spreadsheetId.toString(),
+        range: `prescribes!A${matchingPrescriptionIndex + 1}:D${
+          matchingPrescriptionIndex + 1
+        }`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [[physicianId, patientId, description, dose]],
+        },
+      });
+    } else {
+      console.log("No matching prescription found.");
+    }
+  } else {
+    console.log("No 'PatientID' column in prescribes sheet.");
   }
 
-  const matchingPrescriptionIndex = prescriptionRows.findIndex(
-    (row, index) => index !== 0 && row[prescriptionPatientIdIndex] === patientId
-  );
-
-  if (matchingPrescriptionIndex === -1) {
-    res.status(404).json({ message: "No matching prescription found." });
-    return;
-  }
-
-  const prescriptionRange = `prescribes!A${matchingPrescriptionIndex + 1}:D${
-    matchingPrescriptionIndex + 1
-  }`;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: spreadsheetId.toString(),
-    range: prescriptionRange,
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [physicianId, patientId, description, dose],
-    },
-  });
-
+  // Update appointment sheet
   const appointmentsResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId.toString(),
     range: "appointment",
@@ -299,39 +293,73 @@ app.post("/edit", async (req, res) => {
   const appointmentHeader = appointmentRows[0];
   const appointmentPatientIdIndex = appointmentHeader.indexOf("patientID");
 
-  if (appointmentPatientIdIndex === -1) {
-    res
-      .status(400)
-      .json({ message: "No 'patientID' column in appointments sheet." });
-    return;
+  if (appointmentPatientIdIndex !== -1) {
+    const matchingAppointmentIndex = appointmentRows.findIndex(
+      (row, index) =>
+        index !== 0 && row[appointmentPatientIdIndex] === patientId
+    );
+
+    if (matchingAppointmentIndex !== -1) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: spreadsheetId.toString(),
+        range: `appointment!A${matchingAppointmentIndex + 1}:E${
+          matchingAppointmentIndex + 1
+        }`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [
+            [
+              appointmentId,
+              patientId,
+              physicianId,
+              visitDateString,
+              nextVisitDateString,
+            ],
+          ],
+        },
+      });
+    } else {
+      console.log("No matching appointment found.");
+    }
+  } else {
+    console.log("No 'patientID' column in appointments sheet.");
   }
 
-  const matchingAppointmentIndex = appointmentRows.findIndex(
-    (row, index) => index !== 0 && row[appointmentPatientIdIndex] === patientId
-  );
-
-  if (matchingAppointmentIndex === -1) {
-    res.status(404).json({ message: "No matching appointment found." });
-    return;
-  }
-
-  const appointmentRange = `appointments!A${matchingAppointmentIndex + 1}:E${
-    matchingAppointmentIndex + 1
-  }`;
-
-  const appointmentUpdateResponse = await sheets.spreadsheets.values.update({
+  // Update physician sheet
+  const physicianResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId.toString(),
-    range: appointmentRange,
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [appointmentId, patientId, physicianId, visitDate, nextVisitDate],
-    },
+    range: "physician",
   });
 
-  res.json({
-    message: "Patient details update",
-    updateResponse,
-  });
+  const physicianHeaderRow = physicianResponse.data.values?.[0] || [];
+  const physicianIdIndex = physicianHeaderRow.indexOf("employeeid");
+
+  if (physicianIdIndex !== -1) {
+    const matchingPhysicianIndex = (
+      physicianResponse.data.values ?? []
+    ).findIndex(
+      (row, index) => index !== 0 && row[physicianIdIndex] === physicianId
+    );
+
+    if (matchingPhysicianIndex !== -1) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: spreadsheetId.toString(),
+        range: `prescribes!A${matchingPhysicianIndex + 1}:D${
+          matchingPhysicianIndex + 1
+        }`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [[physicianId, physicianName, "Sr Doctor", physicianPhone]],
+        },
+      });
+    } else {
+      console.log("No matching physician found.");
+    }
+  } else {
+    console.log("No 'PhysicianID' column in physician sheet.");
+  }
+
+  res.json({ message: "Patient details updated successfully." });
 });
 
 app.listen(3000, () => {

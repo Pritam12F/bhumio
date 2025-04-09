@@ -20,6 +20,8 @@ export interface PatientFormData {
 
 export const useSearch = (searchTerm: string, document: string) => {
   const [result, setResult] = useState<PatientFormData>();
+  const [name, setName] = useState("");
+  const [patientId, setPatientId] = useState("");
 
   const fetchPatient = useCallback(async () => {
     const res = await axios.post(
@@ -34,13 +36,15 @@ export const useSearch = (searchTerm: string, document: string) => {
         },
       }
     );
-    console.log(res.data);
+
     setResult(res.data.results);
+    setName(res.data.results.patientName);
+    setPatientId(res.data.results.patientId);
   }, [searchTerm, document]);
 
   useEffect(() => {
     fetchPatient();
   }, [searchTerm, document]);
 
-  return { result };
+  return { result, name, patientId };
 };
