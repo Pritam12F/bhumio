@@ -1,51 +1,43 @@
 import React, { useContext, useState } from "react";
-import {
-  TextField,
-  Paper,
-  Typography,
-  IconButton,
-  Button,
-} from "@mui/material";
+import { TextField, Paper, Typography, Button } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import { ChevronDown } from "lucide-react";
 import { GoogleAuthContext } from "../context/auth/context";
+import axios from "axios";
 
-export interface PatientFormData {
-  patientId: string;
+interface PatientFormData {
   patientName: string;
-  age: string;
-  phone: string;
   address: string;
   location: string;
-  prescription: string;
-  dose: string;
-  visitDate: dayjs.Dayjs | null;
-  nextVisit: dayjs.Dayjs | null;
+  email: string;
+  phone: string;
   physicianId: string;
   physicianName: string;
   physicianPhone: string;
-  bill: string;
+  description: string; // assuming this is the prescription/notes
+  dose: string;
+  appointmentId: string;
+  visitDate: dayjs.Dayjs;
+  nextVisitDate: dayjs.Dayjs;
 }
 
 const AddPatient = () => {
   const [formData, setFormData] = useState<PatientFormData>({
-    patientId: "",
     patientName: "",
-    age: "",
-    phone: "",
     address: "",
     location: "",
-    prescription: "",
-    dose: "",
-    visitDate: dayjs(),
-    nextVisit: dayjs(),
+    email: "",
+    phone: "",
     physicianId: "",
     physicianName: "",
     physicianPhone: "",
-    bill: "",
+    description: "",
+    dose: "",
+    appointmentId: "",
+    visitDate: dayjs(),
+    nextVisitDate: dayjs(),
   });
   const { document } = useContext(GoogleAuthContext);
 
@@ -59,12 +51,29 @@ const AddPatient = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/add?spreadsheetId=${document}`,
+        { ...formData },
+        {
+          headers: {
+            Refreshtoken: localStorage.getItem("google-refresh-token"),
+            Accesstoken: localStorage.getItem("google-access-token"),
+          },
+        }
+      );
+
+      alert("Added patient!");
+    } catch {
+      console.error("Couldn't add patient");
+      alert("Couldn't add patient");
+    }
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Paper className="p-6 min-w-fit min-h-fit mx-auto" elevation={0}>
-        {document}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -94,26 +103,6 @@ const AddPatient = () => {
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            <div>
-              <Typography variant="subtitle2" className="mb-1">
-                Age
-              </Typography>
-              <TextField
-                size="small"
-                name="age"
-                type="number"
-                value={formData.age}
-                onChange={handleChange}
-                fullWidth
-                InputProps={{
-                  endAdornment: (
-                    <IconButton size="small">
-                      <ChevronDown size={16} />
-                    </IconButton>
-                  ),
-                }}
-              />
-            </div>
             <div>
               <Typography variant="subtitle2" className="mb-1">
                 Phone
@@ -148,7 +137,7 @@ const AddPatient = () => {
               <TextField
                 size="small"
                 name="prescription"
-                value={formData.prescription}
+                value={formData.description}
                 onChange={handleChange}
                 fullWidth
                 multiline
@@ -177,7 +166,7 @@ const AddPatient = () => {
               <DatePicker
                 value={formData.visitDate}
                 onChange={(newValue) =>
-                  setFormData((prev) => ({ ...prev, visitDate: newValue }))
+                  setFormData((prev) => ({ ...prev, visitDate: newValue! }))
                 }
                 slotProps={{
                   textField: {
@@ -192,7 +181,7 @@ const AddPatient = () => {
                 Next Visit
               </Typography>
               <DatePicker
-                value={formData.nextVisit}
+                value={formData.nextVisitDate}
                 onChange={(newValue) =>
                   setFormData((prev) => ({ ...prev, nextVisit: newValue }))
                 }
@@ -242,19 +231,6 @@ const AddPatient = () => {
                 size="small"
                 name="physicianPhone"
                 value={formData.physicianPhone}
-                onChange={handleChange}
-                fullWidth
-              />
-            </div>
-            <div>
-              <Typography variant="subtitle2" className="mb-1">
-                Bill
-              </Typography>
-              <TextField
-                size="small"
-                name="bill"
-                type="number"
-                value={formData.bill}
                 onChange={handleChange}
                 fullWidth
               />

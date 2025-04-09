@@ -4,6 +4,7 @@ import { initClient } from "./client/g-drive";
 import { initClient as initSheetsClient } from "./client/g-sheets";
 import dotenv from "dotenv";
 import { google } from "googleapis";
+import { generateRandomId } from "./generate-id";
 
 dotenv.config();
 
@@ -41,6 +42,122 @@ app.post("/signin", async (req, res) => {
   });
 });
 
+app.post("/add", async (req, res) => {
+  const refresh_token = req.headers["refreshtoken"]?.toString();
+  const access_token = req.headers["accesstoken"]?.toString();
+
+  if (!refresh_token || !access_token) {
+    res.json({ message: "Token not provided" });
+    return;
+  }
+
+  const { spreadsheetId } = req.query;
+
+  if (!spreadsheetId) {
+    res.json({ message: "Spreadsheet ID missing in query" });
+    return;
+  }
+
+  const sheets = await initSheetsClient(refresh_token, access_token);
+
+  const {
+    patientName,
+    address,
+    location,
+    email,
+    phone,
+    physicianId,
+    physicianName,
+    physicianPhone,
+    description,
+    dose,
+    appointmentId,
+    visitDate,
+    nextVisitDate,
+  } = req.body;
+
+  const visitDateString = new Date(visitDate).toLocaleDateString("en-IN");
+  const nextVisitDateString = new Date(nextVisitDate).toLocaleDateString(
+    "en-IN"
+  );
+
+  const patientId = generateRandomId();
+  // Append to patient sheet
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "patient",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [
+        [
+          patientId,
+          patientName.split(" ")[0],
+          patientName.split(" ")[1] || "",
+          address,
+          location,
+          email,
+          phone,
+        ],
+      ],
+    },
+  });
+
+  // Append to prescribes sheet
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "prescribes",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [[physicianId, patientId, description, dose]],
+    },
+  });
+
+  // Append to appointment sheet
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "appointment",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [
+        [
+          appointmentId,
+          patientId,
+          physicianId,
+          visitDateString,
+          nextVisitDateString,
+        ],
+      ],
+    },
+  });
+
+  // Check if physician already exists
+  const physicianResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId.toString(),
+    range: "physician",
+  });
+
+  const physicianRows = physicianResponse.data.values || [];
+  const physicianHeader = physicianRows[0];
+  const physicianIdIndex = physicianHeader.indexOf("employeeid");
+
+  const physicianExists = physicianRows.some(
+    (row, index) => index !== 0 && row[physicianIdIndex] === physicianId
+  );
+
+  if (!physicianExists) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: spreadsheetId.toString(),
+      range: "physician",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[physicianId, physicianName, "Sr Doctor", physicianPhone]],
+      },
+    });
+  }
+
+  res.json({ message: "Patient added successfully" });
+});
+
 app.post("/getdocuments", async (req, res) => {
   const refresh_token = req.headers["refreshtoken"]?.toString();
   const access_token = req.headers["accesstoken"]?.toString();
@@ -66,8 +183,6 @@ app.post("/getdocuments", async (req, res) => {
 
   res.json({ files });
 });
-
-app.post("/addpatients", async (req, res) => {});
 
 app.post("/search", async (req, res) => {
   const refresh_token = req.headers["refreshtoken"]?.toString();

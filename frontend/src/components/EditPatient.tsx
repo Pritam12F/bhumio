@@ -17,7 +17,7 @@ interface PatientFormData {
   physicianId: string;
   physicianName: string;
   physicianPhone: string;
-  description: string; // assuming this is the prescription/notes
+  description: string;
   dose: string;
   appointmentId: string;
   visitDate: dayjs.Dayjs;
@@ -63,7 +63,7 @@ const EditPatient = () => {
     e.preventDefault();
     console.log(formData);
 
-    const res = axios.post(
+    axios.post(
       `${
         import.meta.env.VITE_BACKEND_URL
       }/edit?patientId=${patientId}&spreadsheetId=${document}`,
