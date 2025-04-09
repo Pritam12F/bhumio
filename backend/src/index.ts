@@ -17,6 +17,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/ping", async (_, res) => {
+  res.json({
+    message: "pong",
+  });
+});
+
 app.post("/signin", async (req, res) => {
   const authCode = req.headers["authorization"];
 
