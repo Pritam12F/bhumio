@@ -61,20 +61,25 @@ const EditPatient = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
 
-    axios.post(
-      `${
-        import.meta.env.VITE_BACKEND_URL
-      }/edit?patientId=${patientId}&spreadsheetId=${document}`,
-      { ...formData },
-      {
-        headers: {
-          Refreshtoken: localStorage.getItem("google-refresh-token"),
-          Accesstoken: localStorage.getItem("google-access-token"),
-        },
-      }
-    );
+    try {
+      axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/edit?patientId=${patientId}&spreadsheetId=${document}`,
+        { ...formData },
+        {
+          headers: {
+            Refreshtoken: localStorage.getItem("google-refresh-token"),
+            Accesstoken: localStorage.getItem("google-access-token"),
+          },
+        }
+      );
+
+      alert("Updated patient details!");
+    } catch {
+      alert("Error updating patient!");
+    }
   };
 
   return (
